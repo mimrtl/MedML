@@ -1,7 +1,7 @@
 import json
 import os
 
-from sklearn.tests.test_base import K
+#from sklearn.tests.test_base import K
 
 os.environ['TF_KERAS'] = '1'
 os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
@@ -91,11 +91,11 @@ def weighted_cross_entropy(beta):
 
   return loss
 
-def intersection_over_union(y_true, y_pred, smooth=1):
-    intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
-    union = K.sum(y_true, -1) + K.sum(y_pred, -1) - intersection
-    iou = (intersection + smooth) / (union + smooth)
-    return iou
+# def intersection_over_union(y_true, y_pred, smooth=1):
+#     intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
+#     union = K.sum(y_true, -1) + K.sum(y_pred, -1) - intersection
+#     iou = (intersection + smooth) / (union + smooth)
+#     return iou
 
 def tversky_loss(beta):
     def loss(y_true, y_pred):
@@ -118,17 +118,21 @@ def execute():
     dropRate = MedML.get('Dropout rate')
     batchNorm = MedML.get('Batch Normalization')
     optimizerDict = MedML.get('Optimizer')
-    lossDict = MedML.get('LossFunction')
+    lossDict = MedML.get('Loss function')
     lrDict = MedML.get('Learning rate')
     Out_Ch = MedML.get('Out_ch')
-    Start_Ch = MedML.get('Start_ch')
+    startingFilter = MedML.get('Starting filter')
+    #Start_Ch = MedML.get('Start_ch')
     Depth = MedML.get('Depth')
     Maxpool = MedML.get('Maxpool')
     Upconv = MedML.get('Upconv')
     Residual = MedML.get('Residual')
+    X = MedML.get('X')
+    Y = MedML.get('Y')
+    numOfSlices = MedML.get('Number of slices')
 
     print('creating model')
-    model = Unet.UNet([64,64,1],out_ch=int(Out_Ch),start_ch=int(Start_Ch),depth=int(Depth),inc_rate=float(incRate),activation=activFunc,dropout=float(dropRate),batchnorm=batchNorm,maxpool=Maxpool,upconv=Upconv,residual=Residual)
+    model = Unet.UNet([X, Y, numOfSlices],out_ch=int(Out_Ch),start_ch=int(startingFilter),depth=int(Depth),inc_rate=float(incRate),activation=activFunc,dropout=float(dropRate),batchnorm=batchNorm,maxpool=Maxpool,upconv=Upconv,residual=Residual)
 
     #check and call the selected optimizer and insert parameter
     if(optimizerDict == "Adam"):
@@ -301,8 +305,8 @@ def execute():
         lossVal = balanced_cross_entropy
     if(lossDict == "weighted_cross_entropy"):
         lossVal = weighted_cross_entropy
-    if(lossDict == "intersection_over_union"):
-        lossVal = intersection_over_union
+    # if(lossDict == "intersection_over_union"):
+    #     lossVal = intersection_over_union
     if(lossDict == "tversky_loss"):
         lossVal = tversky_loss
     if(lossDict == "lovasz_softmax"):
@@ -313,7 +317,7 @@ def execute():
 
     print('creating data generators')
     ng = NiftiGenerator()
-    ng.initialize('data_train')
+    ng.initialize(MedML.get('Folder name'))
 
     print('creating callbacks')
     history = History()
@@ -327,13 +331,13 @@ def execute():
     batch_size = MedML.get('Batch size')
     #steps = MedML.get('Steps')
     sliceSamples = MedML.get('Slice samples')
-    numOfClasses = MedML.get('NumOfSegClasses')
+    numOfClasses = MedML.get('Number of segmentation classes')
     useMultiProcessing = MedML.get('Use Multiprocessing')
     Workers = MedML.get('Workers')
     MaxQueueSize = MedML.get('Max queue size')
 
     steps_per_epoch = 1000 // batch_size # should really be number of total samples in the dataset divided by batch size
-    model.fit( ng.generate(img_size=(64,64),slice_samples=int(sliceSamples),batch_size=batch_size,num_classes=int(numOfClasses)),
+    model.fit( ng.generate(img_size=(int(X),int(Y)),slice_samples=int(sliceSamples),batch_size=batch_size,num_classes=int(numOfClasses)),
                epochs=epochs, steps_per_epoch=steps_per_epoch,
                use_multiprocessing=useMultiProcessing, workers=int(Workers), max_queue_size=int(MaxQueueSize),
                callbacks=[history, modelCheckpoint] )

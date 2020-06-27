@@ -1,11 +1,12 @@
 #!/usr/bin/env Python3
 import json
+import ntpath
 import os
 from glob import glob
 
 import PySimpleGUI as sg
 
-sg.ChangeLookAndFeel('GreenTan')
+sg.ChangeLookAndFeel('DarkTeal3')
 
 tab1_layout = [
     [sg.T('Validation Split:'), sg.InputText('(float) 0.0-1.0', key='IN1', size=(25, 1), enable_events=True)],
@@ -22,16 +23,15 @@ tab1_layout = [
 
 tab2_layout = [[sg.T('UNet Type:'), sg.DropDown(('2D', '2.5D', '3D'), default_value='2D', change_submits=True,
                                                 key='UNet', size=(5, 1))],
+               [sg.T('X:'), sg.InputText('Input integer', key='x', size=(25, 1), enable_events=True), sg.T('Y:'), sg.InputText('Input integer', key='y', size=(25, 1), enable_events=True)],
                # (integer) 3, 5, 7 ——>for 2.5D UNet only#
                [sg.T('Number of slices:'), sg.DropDown(values=('3', '5'), default_value='3',
                                                        key='slices', size=(5, 1))],
                [sg.T('Starting filters:'),
-                sg.Spin([i for i in range(8, 512)], initial_value=1, size=(5, 1), key='StartFilter')],
+                sg.Spin([i for i in range(8, 512)], initial_value=32, size=(5, 1), key='StartFilter')],
 
                [sg.T('Filter increasing rate:'),
                 sg.InputText('(float) 1.0-5.0', key='IN2', size=(25, 1), enable_events=True)],
-               [sg.T('Dropout rate:'), sg.InputText('(float) 0.0-1.0', key='IN3', size=(25, 1), enable_events=True)],
-               [sg.T('Start_ch:'), sg.InputText('Input integer', key='start_ch', size=(25, 1), enable_events=True)],
                [sg.T('Out_ch:'), sg.InputText('Input integer', key='out_ch', size=(25, 1), enable_events=True)],
                [sg.T('Depth:'), sg.InputText('Input integer', key='depth', size=(25, 1), enable_events=True)]
                ]
@@ -55,6 +55,7 @@ tab4_layout = [[sg.T('Activation function:'),
                             key='ActivationFunction')],
                [sg.T('Workers:', visible=False), sg.InputText(default_text=4, key='workers', size=(25, 1), visible=False, enable_events=True)],
                [sg.T('Max queue size:', visible=False), sg.InputText(default_text=8, visible=False, key='max_queue_size', size=(25, 1), enable_events=True)],
+               [sg.T('Dropout rate:'), sg.Checkbox('On:0.5, Off:0', key='IN3', size=(10, 1), enable_events=True)],
                [sg.T('Batch Normalization:'), sg.Checkbox('On/Off', size=(10, 1), key='BatchNormalization')],
                [sg.T('Maxpool:'), sg.Checkbox('On/Off', size=(10, 1), key='maxpool')],
                [sg.T('Upconv:'), sg.Checkbox('On/Off', size=(10, 1), key='upconv')],
@@ -94,6 +95,10 @@ while True:
         with open(filePathNameWExt, 'w') as fp:
             json.dump(data, fp)
 
+    #extract filename from path
+    def path_leaf(path):
+        head, tail = ntpath.split(path)
+        return tail or ntpath.basename(head)
 
     pathJSON = './'
     fileName = 'MedML'
@@ -102,15 +107,14 @@ while True:
     # JSON tags
     data = {'Validation Split': values['IN1'], 'Cross Validation Runs': values['CrossValidationRuns'],
             'Unet Type': values['UNet'],
-            'Number of slices': values['slices'], 'Starting filters': values['StartFilter'],
+            'Number of slices': values['slices'], 'Starting filter': values['StartFilter'],
             'Filter increasing rate': values['IN2'],
             'Dropout rate': values['IN3'], 'Activation function': values['ActivationFunction'],
             'Number of segmentation classes': values['NumOfSegClasses'],
             'Epochs': values['Epochs'], 'Batch size': values['BatchSize'], 'Optimizer': values['Optimizer'],
-            'Loss function': values['LossFunction'], 'Learning rate': values['IN4'], 'Start_ch': values['start_ch'],
-            'Out_ch': values['out_ch'], 'Depth': values['depth'],
-            'Slice samples': values['slice_samples'],
-            'Workers': values['workers'], 'Max queue size': values['max_queue_size']}
+            'Loss function': values['LossFunction'], 'Learning rate': values['IN4'], 'Out_ch': values['out_ch'],
+            'Depth': values['depth'], 'Slice samples': values['slice_samples'],
+            'Workers': values['workers'], 'Max queue size': values['max_queue_size'], 'X': values['x'], 'Y': values['y']}
 
     # print(event, values)
     if event is None:  # always,  always give a way out!
@@ -123,9 +127,13 @@ while True:
         window['CrossValidationRuns'].update(values['CrossValidationRuns'][:-1])
 
     #SECTION 2 integer boxes of Model
-    # start_ch integer input box
-    if event == 'start_ch' and values['start_ch'] and values['start_ch'][-1] not in ('0123456789'):
-        window['start_ch'].update(values['start_ch'][:-1])
+    # x integer input box
+    if event == 'x' and values['x'] and values['x'][-1] not in ('0123456789'):
+        window['x'].update(values['x'][:-1])
+
+    # y integer input box
+    if event == 'y' and values['y'] and values['y'][-1] not in ('0123456789'):
+        window['y'].update(values['y'][:-1])
 
     # out_ch integer input box
     if event == 'out_ch' and values['out_ch'] and values['out_ch'][-1] not in ('0123456789'):
@@ -205,6 +213,7 @@ while True:
             if not os.path.exists(match_file):
                 print('Label file ' + f + ' does not have a matching image file named ' + match_file)
 
+
     if event == 'Clear':
         window.FindElement('-OUTPUT-').Update('')
 
@@ -239,6 +248,7 @@ while True:
                        sg.In(default_text=optimizerData['Amsgrad'], size=(10, 1), key='Amsgrad0')],
 
                   [sg.B('Submit', key='OptSubmit')]]).read(close=False)
+
 
         #Submit and create json with the values
         if event == 'OptSubmit':
@@ -502,6 +512,15 @@ while True:
             # put write to json here
 
     if event == 'Submit':
+        #store extracted data_eval and data_train file names from path
+        data['Folder name'] = path_leaf(values['inputFolder'])
+
+        #check dropout rate
+        if(values['IN3']==True):
+            data['Dropout rate'] = 0.5
+        else:
+            data['Dropout rate'] = 0
+
         #check for learning rate
         if(values['IN4'] == '(float) 0.000000001-1.0') or (values['IN4'] == ""):
             if(values['Optimizer'] == "SGD"):
