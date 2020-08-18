@@ -91,11 +91,8 @@ def weighted_cross_entropy(beta):
 
   return loss
 
-# def intersection_over_union(y_true, y_pred, smooth=1):
-#     intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
-#     union = K.sum(y_true, -1) + K.sum(y_pred, -1) - intersection
-#     iou = (intersection + smooth) / (union + smooth)
-#     return iou
+def intersection_over_union(num_classes):
+    return tf.keras.metrics.MeanIoU(num_classes=num_classes)
 
 def tversky_loss(beta):
     def loss(y_true, y_pred):
@@ -127,9 +124,9 @@ def execute():
     Maxpool = MedML.get('Maxpool')
     Upconv = MedML.get('Upconv')
     Residual = MedML.get('Residual')
-    X = MedML.get('X')
-    Y = MedML.get('Y')
-    numOfSlices = MedML.get('Number of slices')
+    X = int(MedML.get('X'))
+    Y = int(MedML.get('Y'))
+    numOfSlices = int(MedML.get('Number of slices'))
 
     print('creating model')
     model = Unet.UNet([X, Y, numOfSlices],out_ch=int(Out_Ch),start_ch=int(startingFilter),depth=int(Depth),inc_rate=float(incRate),activation=activFunc,dropout=float(dropRate),batchnorm=batchNorm,maxpool=Maxpool,upconv=Upconv,residual=Residual)
@@ -298,15 +295,15 @@ def execute():
             Epsilon = OptParam.get('Epsilon')
         optimizerVal = callAdamax(float(lrDict), float(Beta1), float(Beta2), float(Epsilon))
 
-    #check and call the selected lss and insert parameter
+    #check and call the selected loss and insert parameter
     if(lossDict == "dice_loss"):
         lossVal = dice_loss
     if(lossDict == "balanced_cross_entropy"):
         lossVal = balanced_cross_entropy
     if(lossDict == "weighted_cross_entropy"):
         lossVal = weighted_cross_entropy
-    # if(lossDict == "intersection_over_union"):
-    #     lossVal = intersection_over_union
+    if(lossDict == "intersection_over_union"):
+        lossVal = intersection_over_union(MedML.get('Number of segmentation classes'))
     if(lossDict == "tversky_loss"):
         lossVal = tversky_loss
     if(lossDict == "lovasz_softmax"):

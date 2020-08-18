@@ -1,7 +1,5 @@
 import json
 
-from sklearn.tests.test_base import K
-
 from lovasz_losses_tf import *
 import tensorflow
 import nibabel as nib
@@ -54,11 +52,8 @@ def weighted_cross_entropy(beta):
 
   return loss
 
-# def intersection_over_union(y_true, y_pred, smooth=1):
-#     intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
-#     union = K.sum(y_true, -1) + K.sum(y_pred, -1) - intersection
-#     iou = (intersection + smooth) / (union + smooth)
-#     return iou
+def intersection_over_union(num_classes):
+    return tf.keras.metrics.MeanIoU(num_classes=num_classes)
 
 def tversky_loss(beta):
     def loss(y_true, y_pred):
@@ -75,12 +70,30 @@ def lovasz_softmax(y_true, y_pred):
 
 def execute():
     # TODO read in your parameters from the JSON file
+    X = MedML.get('X')
+    Y = MedML.get('Y')
     input_folder = MedML.get('Folder name')
-    model_input_size = (64,64)
-    data_input_size = (128,128)
+    model_input_size = (int(X), int(Y))
+    data_input_size = (2*int(X), 2*int(Y))
+
+    lossDict = MedML.get('Loss function')
+
+    # check and call the selected loss and insert parameter
+    if (lossDict == "dice_loss"):
+        lossVal = dice_loss
+    if (lossDict == "balanced_cross_entropy"):
+        lossVal = balanced_cross_entropy
+    if (lossDict == "weighted_cross_entropy"):
+        lossVal = weighted_cross_entropy
+    if (lossDict == "intersection_over_union"):
+        lossVal = intersection_over_union(MedML.get('Number of segmentation classes'))
+    if (lossDict == "tversky_loss"):
+        lossVal = tversky_loss
+    if (lossDict == "lovasz_softmax"):
+        lossVal = lovasz_softmax
     
     print('load model')
-    model = tensorflow.keras.models.load_model('model.h5',custom_objects={'dice_loss': dice_loss})
+    model = tensorflow.keras.models.load_model('model.h5',custom_objects={lossDict: lossVal})
     # optionally consider loading best weights here as well
     
     print('searching for data')
