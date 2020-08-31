@@ -18,21 +18,17 @@ tab1_layout = [
     [sg.T('Number of segmentation classes:'),
      sg.Spin([i for i in range(1, 1000)], initial_value=1, size=(5, 1), key='NumOfSegClasses')],
     [sg.T('Slice samples:'),
-        sg.InputText('Input integer', key='slice_samples', size=(25, 1), enable_events=True)]
+        sg.DropDown(('1', '3', '5', '7', '9'), default_value='1', key='slice_samples', size=(5, 1))]
 ]
 
 tab2_layout = [[sg.T('UNet Type:'), sg.DropDown(('2D', '2.5D', '3D'), default_value='2D', change_submits=True,
                                                 key='UNet', size=(5, 1))],
                [sg.T('X:'), sg.InputText('Input integer', key='x', size=(25, 1), enable_events=True), sg.T('Y:'), sg.InputText('Input integer', key='y', size=(25, 1), enable_events=True)],
-               # (integer) 3, 5, 7 ——>for 2.5D UNet only#
-               [sg.T('Number of slices:'), sg.DropDown(values=('3', '5'), default_value='3',
-                                                       key='slices', size=(5, 1))],
                [sg.T('Starting filters:'),
                 sg.Spin([i for i in range(8, 512)], initial_value=32, size=(5, 1), key='StartFilter')],
 
                [sg.T('Filter increasing rate:'),
                 sg.InputText('(float) 1.0-5.0', key='IN2', size=(25, 1), enable_events=True)],
-               [sg.T('Out_ch:'), sg.InputText('Input integer', key='out_ch', size=(25, 1), enable_events=True)],
                [sg.T('Depth:'), sg.InputText('Input integer', key='depth', size=(25, 1), enable_events=True)]
                ]
 tab3_layout = [[sg.T('Epochs:'), sg.Spin([i for i in range(1, 5000)], initial_value=1, size=(5, 1), key='Epochs')],
@@ -106,13 +102,12 @@ while True:
 
     # JSON tags
     data = {'Validation Split': values['IN1'], 'Cross Validation Runs': values['CrossValidationRuns'],
-            'Unet Type': values['UNet'],
-            'Number of slices': values['slices'], 'Starting filter': values['StartFilter'],
+            'Unet Type': values['UNet'],'Starting filter': values['StartFilter'],
             'Filter increasing rate': values['IN2'],
             'Dropout rate': values['IN3'], 'Activation function': values['ActivationFunction'],
             'Number of segmentation classes': values['NumOfSegClasses'],
             'Epochs': values['Epochs'], 'Batch size': values['BatchSize'], 'Optimizer': values['Optimizer'],
-            'Loss function': values['LossFunction'], 'Learning rate': values['IN4'], 'Out_ch': values['out_ch'],
+            'Loss function': values['LossFunction'], 'Learning rate': values['IN4'],
             'Depth': values['depth'], 'Slice samples': values['slice_samples'],
             'Workers': values['workers'], 'Max queue size': values['max_queue_size'], 'X': values['x'], 'Y': values['y']}
 
@@ -191,13 +186,6 @@ while True:
                 continue
             window['IN4'].update(values['IN4'][:-1])
 
-    # dropdown option handeling
-    val_UNet = str(values['UNet'])
-    if (val_UNet == '2D') or (val_UNet == '3D'):
-        window.Element('slices').Update(values=['3', '5'])
-    if val_UNet == '2.5D':
-        window.Element('slices').Update(values=['3', '5', '7'])
-
     # Folder input handeling
 
     if event == 'Evaluate':
@@ -217,7 +205,7 @@ while True:
     if event == 'Clear':
         window.FindElement('-OUTPUT-').Update('')
 
-
+    #Create OptimizerParameters.json or load it
     #SetOptimizerParameter button click launch window event
     #Adam Parameter Window
     if (event == 'OptimizerParams') and (values['Optimizer'] == 'Adam'):
@@ -541,5 +529,5 @@ while True:
         #Model Section 3
         data['Use Multiprocessing'] = values['use_multiprocessing']
 
-        # Write to JSON file
+        # Write to JSON file, Create MedML.json
         writeToJSONFile(pathJSON, fileName, data)

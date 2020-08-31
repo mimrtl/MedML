@@ -23,12 +23,72 @@ from NiftiGenerator import NiftiGenerator
 
 tensorflow.keras.backend.set_image_data_format('channels_last')
 
+# write to JSON
+def writeToJSONFile(path, fileName, data):
+    filePathNameWExt = './' + path + '/' + fileName + '.json'
+    with open(filePathNameWExt, 'w') as fp:
+        json.dump(data, fp)
+
 f = open('MedML.json')
 MedML = json.load(f)
 
-g = open('OptimizerParameters.json')
-OptParam = json.load(g)
+#try to read OptimizerParameters.json if it was not created create it and put in filler values
+try:
+    g = open('OptimizerParameters.json')
+    OptParam = json.load(g)
+except:
+    pathJSON = './'
+    fileNameOpt = 'OptimizerParameters'
 
+    #create empty dict of opt data
+    optimizerData = {}
+
+    #fill with filler values relative to the Optimizer selection from MedML.json
+    if(MedML.get('Optimizer') == "Adam"):
+        optimizerData['Beta1'] = '(float)'
+        optimizerData['Beta2'] = '(float)'
+        optimizerData['Epsilon'] = '(float)'
+        optimizerData['Amsgrad'] = 'True/False'
+
+    if(MedML.get('Optimizer') == "RectifiedAdam"):
+        optimizerData['Beta1'] = '(float)'
+        optimizerData['Beta2'] = '(float)'
+        optimizerData['Epsilon'] = '(Any)'
+        optimizerData['Decay'] = '(float)'
+        optimizerData['WeightDecay'] = '(float)'
+        optimizerData['Amsgrad'] = 'True/False'
+        optimizerData['TotalSteps'] = '(int)'
+        optimizerData['WarmUpProportion'] = '(float)'
+        optimizerData['MinLr'] = '(float)'
+
+    if(MedML.get('Optimizer') == "RMSprop"):
+        optimizerData['Rho'] = '(float)'
+        optimizerData['Momentum'] = '(float)'
+        optimizerData['Epsilon'] = '(float)'
+        optimizerData['Centered'] = 'True/False'
+
+    if(MedML.get('Optimizer') == "Adagrad"):
+        optimizerData['InitialAccumVal'] = '(float)'
+        optimizerData['Epsilon'] = '(float)'
+
+    if(MedML.get('Optimizer') == "SGD"):
+        optimizerData['Momentum'] = '(float)'
+        optimizerData['Nesterov'] = 'True/False'
+
+    if(MedML.get('Optimizer') == "Nadam"):
+        optimizerData['Beta1'] = '(float)'
+        optimizerData['Beta2'] = '(float)'
+        optimizerData['Epsilon'] = '(float)'
+
+    if(MedML.get('Optimizer') == "Adamax"):
+        optimizerData['Beta1'] = '(float)'
+        optimizerData['Beta2'] = '(float)'
+        optimizerData['Epsilon'] = '(float)'
+
+    #write to file OptimizerParameters.json and then open it
+    writeToJSONFile(pathJSON, fileNameOpt, optimizerData)
+    g = open('OptimizerParameters.json')
+    OptParam = json.load(g)
 
     #call Adam
 def callAdam(learnRate, beta1, beta2, epsilon, amsgrad):
@@ -110,26 +170,24 @@ def lovasz_softmax(y_true, y_pred):
 def execute():
     # read in your parameters from the JSON file
     # TODO
-    incRate = MedML.get('Filter increasing rate')
+    incRate = float(MedML.get('Filter increasing rate'))
     activFunc = MedML.get('Activation function')
-    dropRate = MedML.get('Dropout rate')
+    dropRate = float(MedML.get('Dropout rate'))
     batchNorm = MedML.get('Batch Normalization')
     optimizerDict = MedML.get('Optimizer')
     lossDict = MedML.get('Loss function')
     lrDict = MedML.get('Learning rate')
-    Out_Ch = MedML.get('Out_ch')
-    startingFilter = MedML.get('Starting filter')
-    #Start_Ch = MedML.get('Start_ch')
-    Depth = MedML.get('Depth')
+    startingFilter = int(MedML.get('Starting filter'))
+    Depth = int(MedML.get('Depth'))
     Maxpool = MedML.get('Maxpool')
     Upconv = MedML.get('Upconv')
     Residual = MedML.get('Residual')
     X = int(MedML.get('X'))
     Y = int(MedML.get('Y'))
-    numOfSlices = int(MedML.get('Number of slices'))
+    sliceSamples = int(MedML.get('Slice samples'))
 
     print('creating model')
-    model = Unet.UNet([X, Y, numOfSlices],out_ch=int(Out_Ch),start_ch=int(startingFilter),depth=int(Depth),inc_rate=float(incRate),activation=activFunc,dropout=float(dropRate),batchnorm=batchNorm,maxpool=Maxpool,upconv=Upconv,residual=Residual)
+    model = Unet.UNet([X, Y, sliceSamples],out_ch=1,start_ch=startingFilter,depth=Depth,inc_rate=incRate,activation=activFunc,dropout=dropRate,batchnorm=batchNorm,maxpool=Maxpool,upconv=Upconv,residual=Residual)
 
     #check and call the selected optimizer and insert parameter
     if(optimizerDict == "Adam"):
@@ -327,16 +385,15 @@ def execute():
     epochs = MedML.get('Epochs')
     batch_size = MedML.get('Batch size')
     #steps = MedML.get('Steps')
-    sliceSamples = MedML.get('Slice samples')
-    numOfClasses = MedML.get('Number of segmentation classes')
+    numOfClasses = int(MedML.get('Number of segmentation classes'))
     useMultiProcessing = MedML.get('Use Multiprocessing')
-    Workers = MedML.get('Workers')
-    MaxQueueSize = MedML.get('Max queue size')
+    Workers = int(MedML.get('Workers'))
+    MaxQueueSize = int(MedML.get('Max queue size'))
 
     steps_per_epoch = 1000 // batch_size # should really be number of total samples in the dataset divided by batch size
-    model.fit( ng.generate(img_size=(int(X),int(Y)),slice_samples=int(sliceSamples),batch_size=batch_size,num_classes=int(numOfClasses)),
+    model.fit( ng.generate(img_size=(X,Y),slice_samples=sliceSamples,batch_size=batch_size,num_classes=numOfClasses),
                epochs=epochs, steps_per_epoch=steps_per_epoch,
-               use_multiprocessing=useMultiProcessing, workers=int(Workers), max_queue_size=int(MaxQueueSize),
+               use_multiprocessing=useMultiProcessing, workers=Workers, max_queue_size=MaxQueueSize,
                callbacks=[history, modelCheckpoint] )
 
     model.save('model.h5')

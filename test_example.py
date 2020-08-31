@@ -72,9 +72,11 @@ def execute():
     # TODO read in your parameters from the JSON file
     X = MedML.get('X')
     Y = MedML.get('Y')
-    input_folder = MedML.get('Folder name')
+    sliceSamples = int(MedML.get('Slice samples'))
+    #This will be the name of the data eval folder
+    input_folder = 'data_eval'
     model_input_size = (int(X), int(Y))
-    data_input_size = (2*int(X), 2*int(Y))
+
 
     lossDict = MedML.get('Loss function')
 
@@ -106,30 +108,54 @@ def execute():
         # load data
         nii = nib.load(f)
         nii_data = nii.get_fdata()
+        data_input_size = (nii_data.shape[0], nii_data.shape[1])
         out_data = np.zeros_like(nii_data)
         
-        # this code assumes a single 2D input slice input and single 2D output slice
-        # TODO fix this limitation
-        
-        # loop through slices in the z direction
-        for z in range(0,nii_data.shape[2]):
-            # resize input data
+        # loop through slices
+        for i in range(0,nii_data.shape[2]-sliceSamples):
+
+            # determine sampling range
+            if sliceSamples == 1:
+                z = i
+                seg_z = z + sliceSamples//2
+            else:
+                # warning, sliceSamples is assumed to be 1,3,5,7,9
+                z = range(i,i+sliceSamples)
+                
+                # output segmentation will be the center slice
+                seg_z = z[0] + sliceSamples//2
+
+            # resize input data to fit model
             curr_input = cv2.resize( nii_data[:,:,z], dsize=model_input_size, interpolation = cv2.INTER_CUBIC)
-            curr_input = curr_input[ np.newaxis, ..., np.newaxis]
+            if sliceSamples == 1:
+                curr_input = curr_input[ np.newaxis, ..., np.newaxis] # make input size= [1,X,Y,1]
+            else:
+                curr_input = curr_input[np.newaxis, ...] # make input size= [1,X,Y,sliceSamples]
+
+            # predict segmentation
             curr_output = model.predict( curr_input )
             
             # convert from channel-encoding to integer encoding
+            curr_output_flat = np.zeros( (curr_output.shape[1], curr_output.shape[2]) )
             for c in range(0,curr_output.shape[3]):
-                out_data[:,:,z] += cv2.resize( curr_output[0,:,:,c] * (c+1), dsize=data_input_size, interpolation = cv2.INTER_NEAREST )
-        
+                curr_output_flat += np.squeeze(curr_output[0,:,:,c])
+                
+            # reshape segmentation to match input data size
+            curr_output_flat = cv2.resize( curr_output_flat, dsize=data_input_size, interpolation = cv2.INTER_NEAREST )
+                
+            # store in output array
+            out_data[:,:,seg_z] = curr_output_flat
+
         # save file
         # first create new Nifti object based on the input
         new_nii = nib.Nifti1Image(out_data, nii.affine, nii.header)
+        
         # next determine the filename
         drive, filepath = os.path.splitdrive( f )
         path, filename = os.path.split( filepath )
         new_base = filename.replace('.nii','_seg.nii')
         new_file = os.path.join(drive,path,new_base)
+        
         # now write to disk
         nib.save(new_nii, new_file)
     
