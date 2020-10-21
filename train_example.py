@@ -45,45 +45,45 @@ except:
 
     #fill with filler values relative to the Optimizer selection from MedML.json
     if(MedML.get('Optimizer') == "Adam"):
-        optimizerData['Beta1'] = '(float)'
-        optimizerData['Beta2'] = '(float)'
-        optimizerData['Epsilon'] = '(float)'
-        optimizerData['Amsgrad'] = 'True/False'
+        optimizerData['Beta1'] = 0.9
+        optimizerData['Beta2'] = 0.999
+        optimizerData['Epsilon'] = 1e-7
+        optimizerData['Amsgrad'] = False
 
     if(MedML.get('Optimizer') == "RectifiedAdam"):
-        optimizerData['Beta1'] = '(float)'
-        optimizerData['Beta2'] = '(float)'
-        optimizerData['Epsilon'] = '(Any)'
-        optimizerData['Decay'] = '(float)'
-        optimizerData['WeightDecay'] = '(float)'
-        optimizerData['Amsgrad'] = 'True/False'
-        optimizerData['TotalSteps'] = '(int)'
-        optimizerData['WarmUpProportion'] = '(float)'
-        optimizerData['MinLr'] = '(float)'
+        optimizerData['Beta1'] = 0.9
+        optimizerData['Beta2'] = 0.999
+        optimizerData['Epsilon'] = None
+        optimizerData['Decay'] = 0.
+        optimizerData['WeightDecay'] = 0.
+        optimizerData['Amsgrad'] = False
+        optimizerData['TotalSteps'] = 0
+        optimizerData['WarmUpProportion'] = 0.1
+        optimizerData['MinLr'] = 0.
 
     if(MedML.get('Optimizer') == "RMSprop"):
-        optimizerData['Rho'] = '(float)'
-        optimizerData['Momentum'] = '(float)'
-        optimizerData['Epsilon'] = '(float)'
-        optimizerData['Centered'] = 'True/False'
+        optimizerData['Rho'] = 0.9
+        optimizerData['Momentum'] = 0.0
+        optimizerData['Epsilon'] = 1e-07
+        optimizerData['Centered'] = False
 
     if(MedML.get('Optimizer') == "Adagrad"):
-        optimizerData['InitialAccumVal'] = '(float)'
-        optimizerData['Epsilon'] = '(float)'
+        optimizerData['InitialAccumVal'] = 0.1
+        optimizerData['Epsilon'] = 1e-7
 
     if(MedML.get('Optimizer') == "SGD"):
-        optimizerData['Momentum'] = '(float)'
-        optimizerData['Nesterov'] = 'True/False'
+        optimizerData['Momentum'] = 0.0
+        optimizerData['Nesterov'] = False
 
     if(MedML.get('Optimizer') == "Nadam"):
-        optimizerData['Beta1'] = '(float)'
-        optimizerData['Beta2'] = '(float)'
-        optimizerData['Epsilon'] = '(float)'
+        optimizerData['Beta1'] = 0.9
+        optimizerData['Beta2'] = 0.999
+        optimizerData['Epsilon'] = 1e-7
 
     if(MedML.get('Optimizer') == "Adamax"):
-        optimizerData['Beta1'] = '(float)'
-        optimizerData['Beta2'] = '(float)'
-        optimizerData['Epsilon'] = '(float)'
+        optimizerData['Beta1'] = 0.9
+        optimizerData['Beta2'] = 0.999
+        optimizerData['Epsilon'] = 1e-7
 
     #write to file OptimizerParameters.json and then open it
     writeToJSONFile(pathJSON, fileNameOpt, optimizerData)

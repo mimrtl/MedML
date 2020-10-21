@@ -65,7 +65,7 @@ frame_layout = [
 ]
 
 layout = [
-    [sg.Text('Choose Folder', size=(35, 1))],
+    [sg.Text('Select Folder', size=(35, 1))],
     [sg.Text('Your Folder', size=(15, 1), auto_size_text=False, justification='right'),
      sg.InputText('Default Folder', key='inputFolder', enable_events=True), sg.FolderBrowse(key='inputFolder2')],
     [sg.Button('Evaluate', key='Evaluate'), sg.Button('Clear', key='Clear')],
@@ -220,10 +220,10 @@ while True:
             optimizerData['Amsgrad'] = OptParam.get('Amsgrad')
 
         else:
-            optimizerData['Beta1'] = '(float)'
-            optimizerData['Beta2'] = '(float)'
-            optimizerData['Epsilon'] = '(float)'
-            optimizerData['Amsgrad'] = 'True/False'
+            optimizerData['Beta1'] = 0.9
+            optimizerData['Beta2'] = 0.999
+            optimizerData['Epsilon'] = 1e-7
+            optimizerData['Amsgrad'] = False
 
         event, values = sg.Window('Set Optimizer Parameters',
                   [
@@ -268,15 +268,15 @@ while True:
             optimizerData['MinLr'] = OptParam.get('MinLr')
 
         else:
-            optimizerData['Beta1'] = '(float)'
-            optimizerData['Beta2'] = '(float)'
-            optimizerData['Epsilon'] = '(Any)'
-            optimizerData['Decay'] = '(float)'
-            optimizerData['WeightDecay'] = '(float)'
-            optimizerData['Amsgrad'] = 'True/False'
-            optimizerData['TotalSteps'] = '(int)'
-            optimizerData['WarmUpProportion'] = '(float)'
-            optimizerData['MinLr'] = '(float)'
+            optimizerData['Beta1'] = 0.9
+            optimizerData['Beta2'] = 0.999
+            optimizerData['Epsilon'] = None
+            optimizerData['Decay'] = 0.
+            optimizerData['WeightDecay'] = 0.
+            optimizerData['Amsgrad'] = False
+            optimizerData['TotalSteps'] = 0
+            optimizerData['WarmUpProportion'] = 0.1
+            optimizerData['MinLr'] = 0.
 
 
         event, values = sg.Window('Set Optimizer Parameters',
@@ -331,10 +331,10 @@ while True:
             optimizerData['Centered'] = OptParam.get('Centered')
 
         else:
-            optimizerData['Rho'] = '(float)'
-            optimizerData['Momentum'] = '(float)'
-            optimizerData['Epsilon'] = '(float)'
-            optimizerData['Centered'] = 'True/False'
+            optimizerData['Rho'] = 0.9
+            optimizerData['Momentum'] = 0.0
+            optimizerData['Epsilon'] = 1e-07
+            optimizerData['Centered'] = False
 
         event, values = sg.Window('Set Optimizer Parameters',
                 [
@@ -371,8 +371,8 @@ while True:
             optimizerData['Epsilon'] = OptParam.get('Epsilon')
 
         else:
-            optimizerData['InitialAccumVal'] = '(float)'
-            optimizerData['Epsilon'] = '(float)'
+            optimizerData['InitialAccumVal'] = 0.1
+            optimizerData['Epsilon'] = 1e-7
 
         event, values = sg.Window('Set Optimizer Parameters',
                 [
@@ -403,8 +403,8 @@ while True:
             optimizerData['Nesterov'] = OptParam.get('Nesterov')
 
         else:
-            optimizerData['Momentum'] = '(float)'
-            optimizerData['Nesterov'] = 'True/False'
+            optimizerData['Momentum'] = 0.0
+            optimizerData['Nesterov'] = False
 
         event, values = sg.Window('Set Optimizer Parameters',
                 [
@@ -436,9 +436,9 @@ while True:
             optimizerData['Epsilon'] = OptParam.get('Epsilon')
 
         else:
-            optimizerData['Beta1'] = '(float)'
-            optimizerData['Beta2'] = '(float)'
-            optimizerData['Epsilon'] = '(float)'
+            optimizerData['Beta1'] = 0.9
+            optimizerData['Beta2'] = 0.999
+            optimizerData['Epsilon'] = 1e-7
 
         event, values = sg.Window('Set Optimizer Parameters',
                 [
@@ -473,9 +473,9 @@ while True:
             optimizerData['Epsilon'] = OptParam.get('Epsilon')
 
         else:
-            optimizerData['Beta1'] = '(float)'
-            optimizerData['Beta2'] = '(float)'
-            optimizerData['Epsilon'] = '(float)'
+            optimizerData['Beta1'] = 0.9
+            optimizerData['Beta2'] = 0.999
+            optimizerData['Epsilon'] = 1e-7
 
         event, values = sg.Window('Set Optimizer Parameters',
                                   [
@@ -500,7 +500,7 @@ while True:
             # put write to json here
 
     if event == 'Submit':
-        #store extracted data_eval and data_train file names from path
+        #store extracted data_train file name from path
         data['Folder name'] = path_leaf(values['inputFolder'])
 
         #check dropout rate

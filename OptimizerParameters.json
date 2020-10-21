@@ -1,1 +1,1 @@
-{"Beta1": "(float)", "Beta2": "(float)", "Epsilon": "(float)", "Amsgrad": "True/False"}
+{"Beta1": 0.9, "Beta2": 0.999, "Epsilon": 1e-07, "Amsgrad": false}
