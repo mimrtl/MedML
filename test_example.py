@@ -11,9 +11,6 @@ import cv2
 f = open('MedML.json')
 MedML = json.load(f)
 
-g = open('OptimizerParameters.json')
-OptParam = json.load(g)
-
 def dice_loss(y_true, y_pred):
   numerator = 2 * tensorflow.reduce_sum(y_true * y_pred, axis=-1)
   denominator = tensorflow.reduce_sum(y_true + y_pred, axis=-1)

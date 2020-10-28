@@ -8,55 +8,107 @@ import PySimpleGUI as sg
 
 sg.ChangeLookAndFeel('DarkTeal3')
 
-tab1_layout = [
-    [sg.T('Validation Split:'), sg.InputText('(float) 0.0-1.0', key='IN1', size=(25, 1), enable_events=True)],
+# write to JSON
+def writeToJSONFile(path, fileName, data):
+    filePathNameWExt = './' + path + '/' + fileName + '.json'
+    with open(filePathNameWExt, 'w') as fp:
+        json.dump(data, fp)
 
-    [sg.T('Augmentation:'), sg.Checkbox('Option 1', size=(10, 1), key='AugOption1'),
-     sg.Checkbox('Option 2', default=True, key='AugOption2')],
+try:
+    f = open('MedML.json')
+    MedML = json.load(f)
+
+except:
+    pathJSON = './'
+    fileName = 'MedML'
+
+    medMLdata = {}
+
+    medMLdata["Validation Split"] = "(float) 0.0-1.0"
+    medMLdata["Cross Validation Runs"] = "Input integer"
+    medMLdata["Unet Type"] = "2D"
+    medMLdata["Starting filter"] = 32
+    medMLdata["Filter increasing rate"] = "2"
+    medMLdata["Dropout rate"] = 0.5
+    medMLdata["Activation function"] = "relu"
+    medMLdata["Number of segmentation classes"] = 1
+    medMLdata["Epochs"] = 5
+    medMLdata["Batch size"] = 16
+    medMLdata["Optimizer"] = "Adam"
+    medMLdata["Loss function"] = "dice_loss"
+    medMLdata["Learning rate"] = "0.001"
+    medMLdata["Depth"] = "4"
+    medMLdata["Slice samples"] = "1"
+    medMLdata["Workers"] = "4"
+    medMLdata["Max queue size"] = "8"
+    medMLdata["X"] = "64"
+    medMLdata["Y"] = "64"
+    medMLdata["Folder name"] = "Default Folder"
+    medMLdata["Dropout rate boolean"] = False
+    medMLdata["Augmentation: AugOpt1"] = False
+    medMLdata["Augmentation: AugOpt2"] = True
+    medMLdata["Batch Normalization"] = True
+    medMLdata["Use Tensorboard"] = False
+    medMLdata["Maxpool"] = True
+    medMLdata["Upconv"] = True
+    medMLdata["Residual"] = False
+    medMLdata["Use Multiprocessing"] = True
+
+    #write to file MedML.json and then open it
+    writeToJSONFile(pathJSON, fileName, medMLdata)
+    f = open('MedML.json')
+    MedML = json.load(f)
+
+
+tab1_layout = [
+    [sg.T('Validation Split:'), sg.InputText(default_text=MedML.get("Validation Split"), key='IN1', size=(25, 1), enable_events=True)],
+
+    [sg.T('Augmentation:'), sg.Checkbox('Option 1', default=MedML.get("Augmentation: AugOpt1"), size=(10, 1), key='AugOption1'),
+     sg.Checkbox('Option 2', default=MedML.get("Augmentation: AugOpt2"), key='AugOption2')],
     [sg.T('Cross Validation Runs:'),
-     sg.InputText('Input integer', key='CrossValidationRuns', size=(25, 1), enable_events=True)],
+     sg.InputText(default_text=MedML.get("Cross Validation Runs"), key='CrossValidationRuns', size=(25, 1), enable_events=True)],
     [sg.T('Number of segmentation classes:'),
-     sg.Spin([i for i in range(1, 1000)], initial_value=1, size=(5, 1), key='NumOfSegClasses')],
+     sg.Spin([i for i in range(1, 1000)], initial_value=MedML.get("Number of segmentation classes"), size=(5, 1), key='NumOfSegClasses')],
     [sg.T('Slice samples:'),
-        sg.DropDown(('1', '3', '5', '7', '9'), default_value='1', key='slice_samples', size=(5, 1))]
+        sg.DropDown(('1', '3', '5', '7', '9'), default_value=MedML.get("Slice samples"), key='slice_samples', size=(5, 1))]
 ]
 
-tab2_layout = [[sg.T('UNet Type:'), sg.DropDown(('2D', '2.5D', '3D'), default_value='2D', change_submits=True,
+tab2_layout = [[sg.T('UNet Type:'), sg.DropDown(('2D', '2.5D', '3D'), default_value=MedML.get("Unet Type"), change_submits=True,
                                                 key='UNet', size=(5, 1))],
-               [sg.T('X:'), sg.InputText('Input integer', key='x', size=(25, 1), enable_events=True), sg.T('Y:'), sg.InputText('Input integer', key='y', size=(25, 1), enable_events=True)],
+               [sg.T('X:'), sg.InputText(default_text=MedML.get("X"), key='x', size=(25, 1), enable_events=True), sg.T('Y:'), sg.InputText(default_text=MedML.get("Y"), key='y', size=(25, 1), enable_events=True)],
                [sg.T('Starting filters:'),
-                sg.Spin([i for i in range(8, 512)], initial_value=32, size=(5, 1), key='StartFilter')],
+                sg.Spin([i for i in range(8, 512)], initial_value=MedML.get("Starting filter"), size=(5, 1), key='StartFilter')],
 
                [sg.T('Filter increasing rate:'),
-                sg.InputText('(float) 1.0-5.0', key='IN2', size=(25, 1), enable_events=True)],
-               [sg.T('Depth:'), sg.InputText('Input integer', key='depth', size=(25, 1), enable_events=True)]
+                sg.InputText(default_text=MedML.get("Filter increasing rate"), key='IN2', size=(25, 1), enable_events=True)],
+               [sg.T('Depth:'), sg.InputText(default_text=MedML.get("Depth"), key='depth', size=(25, 1), enable_events=True)]
                ]
-tab3_layout = [[sg.T('Epochs:'), sg.Spin([i for i in range(1, 5000)], initial_value=1, size=(5, 1), key='Epochs')],
+tab3_layout = [[sg.T('Epochs:'), sg.Spin([i for i in range(1, 5000)], initial_value=MedML.get("Epochs"), size=(5, 1), key='Epochs')],
                [sg.T('Batch size:'),
-                sg.Spin([i for i in range(1, 500)], initial_value=1, size=(5, 1), key='BatchSize')],
+                sg.Spin([i for i in range(1, 500)], initial_value=MedML.get("Batch size"), size=(5, 1), key='BatchSize')],
                [sg.T('Optimizer:'),
                 sg.DropDown(('Adam', 'RectifiedAdam', 'RMSprop', 'Adagrad', 'SGD', 'Nadam', 'Adamax'),
-                            default_value='Adam', size=(20, 1), key='Optimizer'), sg.Button('Set Optimizer Parameters', key='OptimizerParams')],
+                            default_value=MedML.get("Optimizer"), size=(20, 1), key='Optimizer'), sg.Button('Set Optimizer Parameters', key='OptimizerParams')],
                [sg.T('Learning rate:'),
-                sg.InputText('(float) 0.000000001-1.0', key='IN4', size=(25, 1), enable_events=True)],
+                sg.InputText(default_text=MedML.get("Learning rate"), key='IN4', size=(25, 1), enable_events=True)],
                [sg.T('Loss function:'), sg.DropDown(('dice_loss', 'balanced_cross_entropy', 'weighted_cross_entropy',
                                                      'intersection_over_union', 'tversky_loss', 'lovasz_softmax'),
-                                                    default_value='dice_loss', size=(23, 1),
+                                                    default_value=MedML.get("Loss function"), size=(23, 1),
                                                     key='LossFunction')],
-               [sg.T('Use Tensorboard:'), sg.Checkbox('On/Off', size=(10, 1), key='TensorOption')]
+               [sg.T('Use Tensorboard:'), sg.Checkbox('On/Off', default=MedML.get("Use Tensorboard"), size=(10, 1), key='TensorOption')]
                ]
 
 tab4_layout = [[sg.T('Activation function:'),
-                sg.DropDown(('relu', 'leaky relu', 'sigmoid'), default_value='relu', size=(20, 1),
+                sg.DropDown(('relu', 'leaky relu', 'sigmoid'), default_value=MedML.get("Activation function"), size=(20, 1),
                             key='ActivationFunction')],
                [sg.T('Workers:', visible=False), sg.InputText(default_text=4, key='workers', size=(25, 1), visible=False, enable_events=True)],
                [sg.T('Max queue size:', visible=False), sg.InputText(default_text=8, visible=False, key='max_queue_size', size=(25, 1), enable_events=True)],
-               [sg.T('Dropout rate:'), sg.Checkbox('On:0.5, Off:0', key='IN3', size=(10, 1), enable_events=True)],
-               [sg.T('Batch Normalization:'), sg.Checkbox('On/Off', size=(10, 1), key='BatchNormalization')],
-               [sg.T('Maxpool:'), sg.Checkbox('On/Off', size=(10, 1), key='maxpool')],
-               [sg.T('Upconv:'), sg.Checkbox('On/Off', size=(10, 1), key='upconv')],
-               [sg.T('Residual:'), sg.Checkbox('On/Off', size=(10, 1), key='residual')],
-               [sg.T('Use multiprocessing:'), sg.Checkbox('On/Off', size=(10, 1), key='use_multiprocessing')]
+               [sg.T('Dropout rate:'), sg.Checkbox('On:0.5, Off:0', default=MedML.get("Dropout rate boolean"), key='IN3', size=(10, 1), enable_events=True)],
+               [sg.T('Batch Normalization:'), sg.Checkbox('On/Off', default=MedML.get("Batch Normalization"), size=(10, 1), key='BatchNormalization')],
+               [sg.T('Maxpool:'), sg.Checkbox('On/Off', default=MedML.get("Maxpool"), size=(10, 1), key='maxpool')],
+               [sg.T('Upconv:'), sg.Checkbox('On/Off', default=MedML.get("Upconv"), size=(10, 1), key='upconv')],
+               [sg.T('Residual:'), sg.Checkbox('On/Off', default=MedML.get("Residual"), size=(10, 1), key='residual')],
+               [sg.T('Use multiprocessing:'), sg.Checkbox('On/Off', default=MedML.get("Use Multiprocessing"), size=(10, 1), key='use_multiprocessing')]
                ]
 
 frame_layout = [
@@ -67,7 +119,7 @@ frame_layout = [
 layout = [
     [sg.Text('Select Folder', size=(35, 1))],
     [sg.Text('Your Folder', size=(15, 1), auto_size_text=False, justification='right'),
-     sg.InputText('Default Folder', key='inputFolder', enable_events=True), sg.FolderBrowse(key='inputFolder2')],
+     sg.InputText(default_text=MedML.get("Folder name"), key='inputFolder', enable_events=True), sg.FolderBrowse(key='inputFolder2')],
     [sg.Button('Evaluate', key='Evaluate'), sg.Button('Clear', key='Clear')],
 
     [sg.Output(size=(57, 5), key='-OUTPUT-')],
@@ -506,8 +558,10 @@ while True:
         #check dropout rate
         if(values['IN3']==True):
             data['Dropout rate'] = 0.5
+            data['Dropout rate boolean'] = True
         else:
             data['Dropout rate'] = 0
+            data['Dropout rate boolean'] = False
 
         #check for learning rate
         if(values['IN4'] == '(float) 0.000000001-1.0') or (values['IN4'] == ""):

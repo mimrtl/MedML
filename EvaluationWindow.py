@@ -19,7 +19,6 @@ layout = [[sg.Text('Select Inputs')],
           [sg.Text('Eval Image Folder', size=(15, 1), auto_size_text=False, justification='right'),
            sg.InputText(key='inputFolder', enable_events=True), sg.FolderBrowse(key='inputFolder2')],
           [sg.Text('MedML.json', justification='right', size=(15, 1)), sg.Input(key='MedMLjson'), sg.FileBrowse()],
-          [sg.Text('Optimizer.json', justification='right', size=(15, 1)), sg.Input(key='Optimizerjson'), sg.FileBrowse()],
           [sg.Submit(key='Submit'), sg.Cancel()]]
 
 window = sg.Window('EvalMedML', layout, default_element_size=(40, 1))
@@ -40,10 +39,6 @@ while True:
         # MedML.json
         f = open(path_leaf(values['MedMLjson']))
         MedML = json.load(f)
-        # OptimizerParameters.json
-        g = open(path_leaf(values['Optimizerjson']))
-        OptParam = json.load(g)
-
 
         def dice_loss(y_true, y_pred):
             numerator = 2 * tensorflow.reduce_sum(y_true * y_pred, axis=-1)
