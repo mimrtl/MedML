@@ -14,10 +14,15 @@ def writeToJSONFile(path, fileName, data):
     with open(filePathNameWExt, 'w') as fp:
         json.dump(data, fp)
 
+def collapse(layout, key):
+    return sg.pin(sg.Column(layout, key=key))
+
+# Try to open existing json file to display UI parameter input
 try:
     f = open('MedML.json')
     MedML = json.load(f)
 
+# otherwise instantiate a parameters json file to have default parameters to display in UI
 except:
     pathJSON = './'
     fileName = 'MedML'
@@ -43,10 +48,12 @@ except:
     medMLdata["Max queue size"] = "8"
     medMLdata["X"] = "64"
     medMLdata["Y"] = "64"
+
     medMLdata["Folder name"] = "Default Folder"
+    medMLdata["Image Folder name"] = "Image Folder"
+    medMLdata["Label Folder name"] = "Label Folder"
+
     medMLdata["Dropout rate boolean"] = False
-    medMLdata["Augmentation: AugOpt1"] = False
-    medMLdata["Augmentation: AugOpt2"] = True
     medMLdata["Batch Normalization"] = True
     medMLdata["Use Tensorboard"] = False
     medMLdata["Maxpool"] = True
@@ -54,17 +61,26 @@ except:
     medMLdata["Residual"] = False
     medMLdata["Use Multiprocessing"] = True
 
+    medMLdata['Augmode'] = 'reflect'
+    medMLdata['Augseed'] = 813
+    medMLdata['Addnoise'] = 0
+    medMLdata['Hflips'] = True
+    medMLdata['Vflips'] = True
+    medMLdata['Rotations'] = 0
+    medMLdata['Scalings'] = 0
+    medMLdata['Shears'] = 0
+    medMLdata['Translations'] = 0
+
     #write to file MedML.json and then open it
     writeToJSONFile(pathJSON, fileName, medMLdata)
     f = open('MedML.json')
     MedML = json.load(f)
 
 
+#Tab UI element component layouts
+
 tab1_layout = [
     [sg.T('Validation Split:'), sg.InputText(default_text=MedML.get("Validation Split"), key='IN1', size=(25, 1), enable_events=True)],
-
-    [sg.T('Augmentation:'), sg.Checkbox('Option 1', default=MedML.get("Augmentation: AugOpt1"), size=(10, 1), key='AugOption1'),
-     sg.Checkbox('Option 2', default=MedML.get("Augmentation: AugOpt2"), key='AugOption2')],
     [sg.T('Cross Validation Runs:'),
      sg.InputText(default_text=MedML.get("Cross Validation Runs"), key='CrossValidationRuns', size=(25, 1), enable_events=True)],
     [sg.T('Number of segmentation classes:'),
@@ -73,7 +89,7 @@ tab1_layout = [
         sg.DropDown(('1', '3', '5', '7', '9'), default_value=MedML.get("Slice samples"), key='slice_samples', size=(5, 1))]
 ]
 
-tab2_layout = [[sg.T('UNet Type:'), sg.DropDown(('2D', '2.5D', '3D'), default_value=MedML.get("Unet Type"), change_submits=True,
+tab2_layout = [[sg.T('UNet Type:'), sg.DropDown(('2D', '2.5D', '3D'), default_value=MedML.get("Unet Type"), enable_events=True,
                                                 key='UNet', size=(5, 1))],
                [sg.T('X:'), sg.InputText(default_text=MedML.get("X"), key='x', size=(25, 1), enable_events=True), sg.T('Y:'), sg.InputText(default_text=MedML.get("Y"), key='y', size=(25, 1), enable_events=True)],
                [sg.T('Starting filters:'),
@@ -86,9 +102,9 @@ tab2_layout = [[sg.T('UNet Type:'), sg.DropDown(('2D', '2.5D', '3D'), default_va
 tab3_layout = [[sg.T('Epochs:'), sg.Spin([i for i in range(1, 5000)], initial_value=MedML.get("Epochs"), size=(5, 1), key='Epochs')],
                [sg.T('Batch size:'),
                 sg.Spin([i for i in range(1, 500)], initial_value=MedML.get("Batch size"), size=(5, 1), key='BatchSize')],
-               [sg.T('Optimizer:'),
+               [sg.T('Optimizer:', enable_events=True),
                 sg.DropDown(('Adam', 'RectifiedAdam', 'RMSprop', 'Adagrad', 'SGD', 'Nadam', 'Adamax'),
-                            default_value=MedML.get("Optimizer"), size=(20, 1), key='Optimizer'), sg.Button('Set Optimizer Parameters', key='OptimizerParams')],
+                            default_value=MedML.get("Optimizer"), size=(20, 1), key='Optimizer', enable_events=True), sg.Button('Set Optimizer Parameters', key='OptimizerParams')],
                [sg.T('Learning rate:'),
                 sg.InputText(default_text=MedML.get("Learning rate"), key='IN4', size=(25, 1), enable_events=True)],
                [sg.T('Loss function:'), sg.DropDown(('dice_loss', 'balanced_cross_entropy', 'weighted_cross_entropy',
@@ -111,27 +127,61 @@ tab4_layout = [[sg.T('Activation function:'),
                [sg.T('Use multiprocessing:'), sg.Checkbox('On/Off', default=MedML.get("Use Multiprocessing"), size=(10, 1), key='use_multiprocessing')]
                ]
 
+tab5_layout = [[sg.T('Aug Mode:'),
+                sg.DropDown(('mirror', 'nearest', 'reflect', 'wrap'), default_value=MedML.get("Augmode"), size=(20, 1),
+                            key='Augmode')],
+               [sg.T('Aug Seed:'), sg.InputText(default_text=MedML.get("Augseed"), key='Augseed', size=(25, 1), enable_events=True),
+               sg.T('Add Noise:'), sg.InputText(default_text=MedML.get("Addnoise"), key='Addnoise', size=(25, 1), enable_events=True)],
+
+               [sg.T('Random Horizontal Flips:'), sg.Checkbox('On/Off', default=MedML.get("Hflips"), size=(10, 1), key='hflips')],
+               [sg.T('Random Vertical Flips:'), sg.Checkbox('On/Off', default=MedML.get("Vflips"), size=(10, 1), key='vflips')],
+
+               [sg.T('Rotations Angle'), sg.InputText(default_text=MedML.get("Rotations"), key='rotations', size=(25, 1), enable_events=True),
+               sg.T('Scalings Range'), sg.InputText(default_text=MedML.get("Scalings"), key='scalings', size=(25, 1), enable_events=True)],
+
+               [sg.T('Shears Angle'), sg.InputText(default_text=MedML.get("Shears"), key='shears', size=(25, 1), enable_events=True),
+               sg.T('Translations Pixels'), sg.InputText(default_text=MedML.get("Translations"), key='translations', size=(25, 1), enable_events=True)]
+
+]
+
+#Frame grouping for tabs
 frame_layout = [
-    [sg.TabGroup([[sg.Tab('Data Set', tab1_layout), sg.Tab('Model Parameters', tab2_layout),
+    [sg.TabGroup([[sg.Tab('Data Set', tab1_layout), sg.Tab('Augmentation Options', tab5_layout), sg.Tab('Model Parameters', tab2_layout),
                    sg.Tab('Model Options', tab4_layout), sg.Tab('Training', tab3_layout)]])]
 ]
 
-layout = [
-    [sg.Text('Select Folder', size=(35, 1))],
-    [sg.Text('Your Folder', size=(15, 1), auto_size_text=False, justification='right'),
-     sg.InputText(default_text=MedML.get("Folder name"), key='inputFolder', enable_events=True), sg.FolderBrowse(key='inputFolder2')],
-    [sg.Button('Evaluate', key='Evaluate'), sg.Button('Clear', key='Clear')],
+inputOption1 = [
+    [sg.Text('Training Data:', font='12')],
+    [sg.Text('Input Folder (Images & Labels)', justification='right'),
+     sg.InputText(default_text=MedML.get("Folder name"), key='inputFolder', enable_events=True), sg.FolderBrowse(target='inputFolder')],]
 
-    [sg.Output(size=(57, 5), key='-OUTPUT-')],
+inputOption2 = [
+    [sg.Text('Images Folder', size=(15, 1), auto_size_text=False, justification='right'),
+     sg.InputText(default_text="Images Folder", key='inputFolder3', enable_events=True),
+     sg.FolderBrowse(key='inputFolder4')],
+    [sg.Text('Labels Folder', size=(15, 1), auto_size_text=False, justification='right'),
+     sg.InputText(default_text="Labels Folder", key='inputFolder5', enable_events=True),
+     sg.FolderBrowse(key='inputFolder6')],
+    [sg.Text(" " * 40), sg.Button('Load input folders', key='LoadInputFolders')],
+]
+
+layout = [
+    #Hide show single or double image/label folder input options
+    [sg.Checkbox('Hide Single Folder Input', enable_events=True, default=False, key='-OPEN SEC1-CHECKBOX'), sg.Checkbox('Hide Multi Folder Input', enable_events=True, default=False, key='-OPEN SEC2-CHECKBOX')],
+    [collapse(inputOption1, '-SEC1-')],
+    [collapse(inputOption2, '-SEC2-')],
 
     [sg.Text('_' * 80)],
 
     [sg.Frame('Select Parameters', frame_layout, font='Any 12', title_color='black')],
-
-    [sg.Submit(key='Submit'), sg.Cancel()]
+    [sg.Input(key='_FILEBROWSE_', enable_events=True, visible=False)],
+    [sg.Input(key='_FILESAVEAS_', enable_events=True, visible=False)],
+     [sg.Button('Save', key='Save'), sg.FileSaveAs('Save As', key='Save As', target='_FILESAVEAS_'), sg.FileBrowse('Load Paramaters', file_types=(("Json Files", "*.json"),), target='_FILEBROWSE_')]
 ]
 
 window = sg.Window('MedML', layout, default_element_size=(40, 1), resizable=True, finalize=True)
+
+opened1, opened2 = True, True
 
 while True:
     event, values = window.read()
@@ -161,11 +211,77 @@ while True:
             'Epochs': values['Epochs'], 'Batch size': values['BatchSize'], 'Optimizer': values['Optimizer'],
             'Loss function': values['LossFunction'], 'Learning rate': values['IN4'],
             'Depth': values['depth'], 'Slice samples': values['slice_samples'],
-            'Workers': values['workers'], 'Max queue size': values['max_queue_size'], 'X': values['x'], 'Y': values['y']}
+            'Workers': values['workers'], 'Max queue size': values['max_queue_size'], 'X': values['x'], 'Y': values['y'],
+            'Augmode': values['Augmode'], 'Augseed': values['Augseed'], 'Addnoise': values['Addnoise'], 'Hflips': values['hflips'],
+            'Vflips': values['vflips'], 'Rotations': values['rotations'], 'Scalings': values['scalings'], 'Shears': values['shears'],
+            'Translations': values['translations']}
 
     # print(event, values)
     if event is None:  # always,  always give a way out!
         break
+
+    #manage inputOption, training data, section
+    if event.startswith('-OPEN SEC1-'):
+        opened1 = not opened1
+        window['-OPEN SEC2-CHECKBOX'].update(not opened1)
+        window['-SEC1-'].update(visible=opened1)
+
+    if event.startswith('-OPEN SEC2-'):
+        opened2 = not opened2
+        window['-OPEN SEC2-CHECKBOX'].update(not opened2)
+        window['-SEC2-'].update(visible=opened2)
+
+    #load parameters
+    # load values into the window input spaces
+
+    if event == '_FILEBROWSE_':
+
+        #Any loading is dependent on selection made which will then be in path text in a hidden text box
+        #check for any user selection of load file in the hidden text path box
+        while(values['_FILEBROWSE_'] == ""):
+            pass
+
+        if(values['_FILEBROWSE_'] != ""):
+
+            #once have the load params file path load
+            p = open(path_leaf(values['_FILEBROWSE_']))
+            loadedParamsFile = json.load(p)
+
+
+            #update the window with new loaded values to MedML
+            window['IN1'].update(loadedParamsFile.get("Validation Split"))
+            window['CrossValidationRuns'].update(loadedParamsFile.get("Cross Validation Runs"))
+            window['UNet'].update(loadedParamsFile.get("Unet Type"))
+            window['StartFilter'].update(loadedParamsFile.get("Starting filter"))
+            window['IN2'].update(loadedParamsFile.get("Filter increasing rate"))
+
+            #This is determined by changed dropout rate boolean
+            # window["Dropout rate"].update(loadedParamsFile.get("Dropout rate"))
+
+            window['ActivationFunction'].update(loadedParamsFile.get("Activation function"))
+            window['NumOfSegClasses'].update(loadedParamsFile.get("Number of segmentation classes"))
+            window['Epochs'].update(loadedParamsFile.get("Epochs"))
+            window['BatchSize'].update(loadedParamsFile.get("Batch size"))
+            window['Optimizer'].update(loadedParamsFile.get("Optimizer"))
+            window['LossFunction'].update(loadedParamsFile.get("Loss function"))
+            window['IN4'].update(loadedParamsFile.get("Learning rate"))
+            window['depth'].update(loadedParamsFile.get("Depth"))
+            window['slice_samples'].update(loadedParamsFile.get("Slice samples"))
+            window['workers'].update(loadedParamsFile.get("Workers"))
+            window['max_queue_size'].update(loadedParamsFile.get("Max queue size"))
+            window['x'].update(loadedParamsFile.get("X"))
+            window['y'].update(loadedParamsFile.get("Y"))
+            window['_FILEBROWSE_'].update(loadedParamsFile.get("Folder name"))
+            window['IN3'].update(loadedParamsFile.get("Dropout rate boolean"))
+            window['BatchNormalization'].update(loadedParamsFile.get("Batch Normalization"))
+            window['TensorOption'].update(loadedParamsFile.get("Use Tensorboard"))
+            window['maxpool'].update(loadedParamsFile.get("Maxpool"))
+            window['upconv'].update(loadedParamsFile.get("Upconv"))
+            window['residual'].update(loadedParamsFile.get("Residual"))
+            window['use_multiprocessing'].update(loadedParamsFile.get("Use Multiprocessing"))
+
+            sg.popup_ok('Parameters Loaded')
+
 
     #Integer boxes handeling
     # CrossValidation integer input box
@@ -238,30 +354,33 @@ while True:
                 continue
             window['IN4'].update(values['IN4'][:-1])
 
-    # Folder input handeling
 
-    if event == 'Evaluate':
-        label_files = glob(os.path.join(values['inputFolder'], '*_labels.nii.gz'), recursive=True) + glob(
-            os.path.join(values['inputFolder'], '*_labels.nii'), recursive=True)
-        for f in label_files:
-            drive, filepath = os.path.splitdrive(f)
-            path, filename = os.path.split(filepath)
-            match_base = filename.replace('_labels.nii', '.nii')
-            match_file = os.path.join(drive, path, match_base)
+    #Set mode for single folder with image and labels
+    if event == 'inputFolder':
 
-            # False -> No match
-            if not os.path.exists(match_file):
-                print('Label file ' + f + ' does not have a matching image file named ' + match_file)
+        data["inputFolderMode"] = "one"
 
+        writeToJSONFile(pathJSON, fileName, data)
 
-    if event == 'Clear':
-        window.FindElement('-OUTPUT-').Update('')
+    # Set mode and Store folder input for split image and label folders
+
+    if event == 'LoadInputFolders':
+
+        # Set mode for two folder input
+        data["inputFolderMode"] = "two"
+
+        writeToJSONFile(pathJSON, fileName, data)
+
+        sg.popup_ok('Image and Label folders set')
+
 
     #Create OptimizerParameters.json or load it
     #SetOptimizerParameter button click launch window event
     #Adam Parameter Window
     if (event == 'OptimizerParams') and (values['Optimizer'] == 'Adam'):
         optimizerData = {}
+
+        optimizerData['Optimizer'] = 'Adam'
 
         #Check for existing submissions to populate fields with latest entries submitted
         if(os.path.exists('OptimizerParameters.json')):
@@ -272,6 +391,7 @@ while True:
             optimizerData['Amsgrad'] = OptParam.get('Amsgrad')
 
         else:
+
             optimizerData['Beta1'] = 0.9
             optimizerData['Beta2'] = 0.999
             optimizerData['Epsilon'] = 1e-7
@@ -298,6 +418,8 @@ while True:
             optimizerData['Amsgrad'] = values['Amsgrad0']
             writeToJSONFile(pathJSON, fileNameOpt, optimizerData)
 
+            sg.popup_ok('Optimizer Parameters set (Adam)')
+
 
         #login_id = values['-ID-']
         #create dictionary to store the values
@@ -306,6 +428,8 @@ while True:
     #RectifiedAdam Parameter Window
     if (event == 'OptimizerParams') and (values['Optimizer'] == 'RectifiedAdam'):
         optimizerData = {}
+
+        optimizerData['Optimizer'] = 'RectifiedAdam'
 
         if(os.path.exists('OptimizerParameters.json')):
             OptParam = json.load(open('OptimizerParameters.json'))
@@ -367,6 +491,8 @@ while True:
             optimizerData['MinLr'] = values['IN13']
             writeToJSONFile(pathJSON, fileNameOpt, optimizerData)
 
+            sg.popup_ok('Optimizer Parameters set (RectifiedAdam)')
+
         #login_id = values['-ID-']
         #create dictionary to store the values
         #put write to json here
@@ -374,6 +500,8 @@ while True:
     #RMSprop Parameter Window
     if (event == 'OptimizerParams') and (values['Optimizer'] == 'RMSprop'):
         optimizerData = {}
+
+        optimizerData['Optimizer'] = 'RMSprop'
 
         if(os.path.exists('OptimizerParameters.json')):
             OptParam = json.load(open('OptimizerParameters.json'))
@@ -409,6 +537,8 @@ while True:
             optimizerData['Centered'] = values['Centered0']
             writeToJSONFile(pathJSON, fileNameOpt, optimizerData)
 
+            sg.popup_ok('Optimizer Parameters set (RMSprop)')
+
             # login_id = values['-ID-']
             # create dictionary to store the values
             # put write to json here
@@ -416,6 +546,8 @@ while True:
     #Adagrad Parameter Window
     if (event == 'OptimizerParams') and (values['Optimizer'] == 'Adagrad'):
         optimizerData = {}
+
+        optimizerData['Optimizer'] = 'Adagrad'
 
         if(os.path.exists('OptimizerParameters.json')):
             OptParam = json.load(open('OptimizerParameters.json'))
@@ -441,6 +573,8 @@ while True:
             optimizerData['Epsilon'] = values['IN7']
             writeToJSONFile(pathJSON, fileNameOpt, optimizerData)
 
+            sg.popup_ok('Optimizer Parameters set (Adagrad)')
+
             # login_id = values['-ID-']
             # create dictionary to store the values
             # put write to json here
@@ -448,6 +582,8 @@ while True:
     #SGD Parameter Window
     if (event == 'OptimizerParams') and (values['Optimizer'] == 'SGD'):
         optimizerData = {}
+
+        optimizerData['Optimizer'] = 'SGD'
 
         if(os.path.exists('OptimizerParameters.json')):
             OptParam = json.load(open('OptimizerParameters.json'))
@@ -473,6 +609,8 @@ while True:
             optimizerData['Nesterov'] = values['Nesterov0']
             writeToJSONFile(pathJSON, fileNameOpt, optimizerData)
 
+            sg.popup_ok('Optimizer Parameters set (SGD)')
+
             # login_id = values['-ID-']
             # create dictionary to store the values
             # put write to json here
@@ -480,6 +618,8 @@ while True:
     #Nadam Parameter Window
     if (event == 'OptimizerParams') and (values['Optimizer'] == 'Nadam'):
         optimizerData = {}
+
+        optimizerData['Optimizer'] = 'Nadam'
 
         if(os.path.exists('OptimizerParameters.json')):
             OptParam = json.load(open('OptimizerParameters.json'))
@@ -510,6 +650,8 @@ while True:
             optimizerData['Epsilon'] = values['IN7']
             writeToJSONFile(pathJSON, fileNameOpt, optimizerData)
 
+            sg.popup_ok('Optimizer Parameters set (Nadam)')
+
             # login_id = values['-ID-']
             # create dictionary to store the values
             # put write to json here
@@ -517,6 +659,8 @@ while True:
     #Adamax Parameter Window
     if (event == 'OptimizerParams') and (values['Optimizer'] == 'Adamax'):
         optimizerData = {}
+
+        optimizerData['Optimizer'] = 'Adamax'
 
         if(os.path.exists('OptimizerParameters.json')):
             OptParam = json.load(open('OptimizerParameters.json'))
@@ -547,13 +691,36 @@ while True:
             optimizerData['Epsilon'] = values['IN7']
             writeToJSONFile(pathJSON, fileNameOpt, optimizerData)
 
+            sg.popup_ok('Optimizer Parameters set (Adamax)')
+
             # login_id = values['-ID-']
             # create dictionary to store the values
             # put write to json here
 
-    if event == 'Submit':
-        #store extracted data_train file name from path
-        data['Folder name'] = path_leaf(values['inputFolder'])
+    # SAVE
+
+    if event == 'Save':
+        #reload MedML.json to check for folder mode status
+        f = open('MedML.json')
+        MedML = json.load(f)
+
+        #Based on folder mode status read, set the folder, or images/label folders
+        if MedML.get("inputFolderMode") == "one":
+
+            data["inputFolderMode"] = "one"
+
+            # store extracted data_train file name from path
+            data['Folder name'] = path_leaf(values['inputFolder'])
+
+        if MedML.get("inputFolderMode") == "two":
+
+            data["inputFolderMode"] = "two"
+
+            # Images Folder
+            data["Image Folder name"] = path_leaf(values['inputFolder3'])
+
+            # Labels Folder
+            data["Label Folder name"] = path_leaf(values['inputFolder5'])
 
         #check dropout rate
         if(values['IN3']==True):
@@ -569,19 +736,406 @@ while True:
                 data['Learning rate'] = 0.01
             else:
                 data['Learning rate'] = 0.001
+
+        # Augmentation Options
+        data['Augmode'] = values['Augmode']
+        data['Augseed'] = values['Augseed']
+        data['Addnoise'] = values['Addnoise']
+        data['Hflips'] = values['hflips']
+        data['Vflips'] = values['vflips']
+        data['Rotations'] = values['rotations']
+        data['Scalings'] = values['scalings']
+        data['Shears'] = values['shears']
+        data['Translations'] = values['translations']
+
         # Add checkbox options to the data dictionary
-        data['Augmentation: AugOpt1'] = values['AugOption1']
-        data['Augmentation: AugOpt2'] = values['AugOption2']
+        # Model Options
         data['Batch Normalization'] = values['BatchNormalization']
         data['Use Tensorboard'] = values['TensorOption']
-
-        #Model Section 2
         data['Maxpool'] = values['maxpool']
         data['Upconv'] = values['upconv']
         data['Residual'] = values['residual']
-
-        #Model Section 3
         data['Use Multiprocessing'] = values['use_multiprocessing']
+
+        # Add on or create OptimizerParameters.json and put inputs dictionary into MedML
+
+        # try to read OptimizerParameters.json if it was not created create it and put in filler values
+        try:
+
+            g = open('OptimizerParameters.json')
+            OptParam = json.load(g)
+            data['OptParam'] = OptParam
+
+            # optimizer value changed so we need to provide values consisting from new optimizer selected from gui
+            # otherwise when reading from the MedML.json file it will be missing values from the un-updated optimizer dict
+
+            if(values['Optimizer'] != OptParam.get("Optimizer")):
+                pathJSON = './'
+                fileNameOpt = 'OptimizerParameters'
+
+                # create empty dict of opt data
+                optimizerData = {}
+
+                # fill with filler values relative to the Optimizer selection from MedML.json
+                if (values['Optimizer'] == "Adam"):
+                    optimizerData['Optimizer'] = "Adam"
+
+                    optimizerData['Beta1'] = 0.9
+                    optimizerData['Beta2'] = 0.999
+                    optimizerData['Epsilon'] = 1e-7
+                    optimizerData['Amsgrad'] = False
+
+                if (values['Optimizer'] == "RectifiedAdam"):
+                    optimizerData['Optimizer'] = "RectifiedAdam"
+
+                    optimizerData['Beta1'] = 0.9
+                    optimizerData['Beta2'] = 0.999
+                    optimizerData['Epsilon'] = None
+                    optimizerData['Decay'] = 0.
+                    optimizerData['WeightDecay'] = 0.
+                    optimizerData['Amsgrad'] = False
+                    optimizerData['TotalSteps'] = 0
+                    optimizerData['WarmUpProportion'] = 0.1
+                    optimizerData['MinLr'] = 0.
+
+                if (values['Optimizer'] == "RMSprop"):
+                    optimizerData['Optimizer'] = "RMSprop"
+
+                    optimizerData['Rho'] = 0.9
+                    optimizerData['Momentum'] = 0.0
+                    optimizerData['Epsilon'] = 1e-07
+                    optimizerData['Centered'] = False
+
+                if (values['Optimizer'] == "Adagrad"):
+                    optimizerData['Optimizer'] = "Adagrad"
+
+                    optimizerData['InitialAccumVal'] = 0.1
+                    optimizerData['Epsilon'] = 1e-7
+
+                if (values['Optimizer'] == "SGD"):
+                    optimizerData['Optimizer'] = "SGD"
+
+                    optimizerData['Momentum'] = 0.0
+                    optimizerData['Nesterov'] = False
+
+                if (values['Optimizer'] == "Nadam"):
+                    optimizerData['Optimizer'] = "Nadam"
+
+                    optimizerData['Beta1'] = 0.9
+                    optimizerData['Beta2'] = 0.999
+                    optimizerData['Epsilon'] = 1e-7
+
+                if (values['Optimizer'] == "Adamax"):
+                    optimizerData['Optimizer'] = "Adamax"
+
+                    optimizerData['Beta1'] = 0.9
+                    optimizerData['Beta2'] = 0.999
+                    optimizerData['Epsilon'] = 1e-7
+
+                # write to file OptimizerParameters.json and then open it
+                writeToJSONFile(pathJSON, fileNameOpt, optimizerData)
+                g = open('OptimizerParameters.json')
+                OptParam = json.load(g)
+
+                # Take loaded OptParam and put in data dictionary to be in MedML.json
+                data['OptParam'] = OptParam
+
+
+        except:
+
+            pathJSON = './'
+            fileNameOpt = 'OptimizerParameters'
+
+            # create empty dict of opt data
+            optimizerData = {}
+
+            # fill with filler values relative to the Optimizer selection from MedML.json
+            if (values['Optimizer'] == "Adam"):
+                optimizerData['Optimizer'] = "Adam"
+
+                optimizerData['Beta1'] = 0.9
+                optimizerData['Beta2'] = 0.999
+                optimizerData['Epsilon'] = 1e-7
+                optimizerData['Amsgrad'] = False
+
+            if (values['Optimizer'] == "RectifiedAdam"):
+                optimizerData['Optimizer'] = "RectifiedAdam"
+
+                optimizerData['Beta1'] = 0.9
+                optimizerData['Beta2'] = 0.999
+                optimizerData['Epsilon'] = None
+                optimizerData['Decay'] = 0.
+                optimizerData['WeightDecay'] = 0.
+                optimizerData['Amsgrad'] = False
+                optimizerData['TotalSteps'] = 0
+                optimizerData['WarmUpProportion'] = 0.1
+                optimizerData['MinLr'] = 0.
+
+            if (values['Optimizer'] == "RMSprop"):
+                optimizerData['Optimizer'] = "RMSprop"
+
+                optimizerData['Rho'] = 0.9
+                optimizerData['Momentum'] = 0.0
+                optimizerData['Epsilon'] = 1e-07
+                optimizerData['Centered'] = False
+
+            if (values['Optimizer'] == "Adagrad"):
+                optimizerData['Optimizer'] = "Adagrad"
+
+                optimizerData['InitialAccumVal'] = 0.1
+                optimizerData['Epsilon'] = 1e-7
+
+            if (values['Optimizer'] == "SGD"):
+                optimizerData['Optimizer'] = "SGD"
+
+                optimizerData['Momentum'] = 0.0
+                optimizerData['Nesterov'] = False
+
+            if (values['Optimizer'] == "Nadam"):
+                optimizerData['Optimizer'] = "Nadam"
+
+                optimizerData['Beta1'] = 0.9
+                optimizerData['Beta2'] = 0.999
+                optimizerData['Epsilon'] = 1e-7
+
+            if (values['Optimizer'] == "Adamax"):
+                optimizerData['Optimizer'] = "Adamax"
+
+                optimizerData['Beta1'] = 0.9
+                optimizerData['Beta2'] = 0.999
+                optimizerData['Epsilon'] = 1e-7
+
+            # write to file OptimizerParameters.json and then open it
+            writeToJSONFile(pathJSON, fileNameOpt, optimizerData)
+            g = open('OptimizerParameters.json')
+            OptParam = json.load(g)
+
+            # Take loaded OptParam and put in data dictionary to be in MedML.json
+            data['OptParam'] = OptParam
+
 
         # Write to JSON file, Create MedML.json
         writeToJSONFile(pathJSON, fileName, data)
+
+        sg.popup_ok('MedML parameters saved')
+
+    # SAVE AS
+
+    if event == '_FILESAVEAS_':
+
+        # reload MedML.json to check for folder mode status
+        f = open('MedML.json')
+        MedML = json.load(f)
+
+        # Based on folder mode status read, set the folder, or images/label folders
+        if MedML.get("inputFolderMode") == "one":
+            data["inputFolderMode"] = "one"
+
+            # store extracted data_train file name from path
+            data['Folder name'] = path_leaf(values['inputFolder'])
+
+        if MedML.get("inputFolderMode") == "two":
+            data["inputFolderMode"] = "two"
+
+            # Images Folder
+            data["Image Folder name"] = path_leaf(values['inputFolder3'])
+
+            # Labels Folder
+            data["Label Folder name"] = path_leaf(values['inputFolder5'])
+
+        #check dropout rate
+        if(values['IN3']==True):
+            data['Dropout rate'] = 0.5
+            data['Dropout rate boolean'] = True
+        else:
+            data['Dropout rate'] = 0
+            data['Dropout rate boolean'] = False
+
+        #check for learning rate
+        if(values['IN4'] == '(float) 0.000000001-1.0') or (values['IN4'] == ""):
+            if(values['Optimizer'] == "SGD"):
+                data['Learning rate'] = 0.01
+            else:
+                data['Learning rate'] = 0.001
+
+        # Augmentation Options
+        data['Augmode'] = values['Augmode']
+        data['Augseed'] = values['Augseed']
+        data['Addnoise'] = values['Addnoise']
+        data['Hflips'] = values['hflips']
+        data['Vflips'] = values['vflips']
+        data['Rotations'] = values['rotations']
+        data['Scalings'] = values['scalings']
+        data['Shears'] = values['shears']
+        data['Translations'] = values['translations']
+
+        # Add checkbox options to the data dictionary
+        # Model Options
+        data['Batch Normalization'] = values['BatchNormalization']
+        data['Use Tensorboard'] = values['TensorOption']
+        data['Maxpool'] = values['maxpool']
+        data['Upconv'] = values['upconv']
+        data['Residual'] = values['residual']
+        data['Use Multiprocessing'] = values['use_multiprocessing']
+
+        # Add on or create OptimizerParameters.json and put inputs dictionary into MedML
+
+        # try to read OptimizerParameters.json if it was not created create it and put in filler values
+        try:
+
+            g = open('OptimizerParameters.json')
+            OptParam = json.load(g)
+            data['OptParam'] = OptParam
+
+            # optimizer value changed so we need to provide values consisting from new optimizer selected from gui
+            # otherwise when reading from the MedML.json file it will be missing values from the un-updated optimizer dict
+
+            if(values['Optimizer'] != OptParam.get("Optimizer")):
+                pathJSON = './'
+                fileNameOpt = 'OptimizerParameters'
+
+                # create empty dict of opt data
+                optimizerData = {}
+
+                # fill with filler values relative to the Optimizer selection from MedML.json
+                if (values['Optimizer'] == "Adam"):
+                    optimizerData['Optimizer'] = "Adam"
+
+                    optimizerData['Beta1'] = 0.9
+                    optimizerData['Beta2'] = 0.999
+                    optimizerData['Epsilon'] = 1e-7
+                    optimizerData['Amsgrad'] = False
+
+                if (values['Optimizer'] == "RectifiedAdam"):
+                    optimizerData['Optimizer'] = "RectifiedAdam"
+
+                    optimizerData['Beta1'] = 0.9
+                    optimizerData['Beta2'] = 0.999
+                    optimizerData['Epsilon'] = None
+                    optimizerData['Decay'] = 0.
+                    optimizerData['WeightDecay'] = 0.
+                    optimizerData['Amsgrad'] = False
+                    optimizerData['TotalSteps'] = 0
+                    optimizerData['WarmUpProportion'] = 0.1
+                    optimizerData['MinLr'] = 0.
+
+                if (values['Optimizer'] == "RMSprop"):
+                    optimizerData['Optimizer'] = "RMSprop"
+
+                    optimizerData['Rho'] = 0.9
+                    optimizerData['Momentum'] = 0.0
+                    optimizerData['Epsilon'] = 1e-07
+                    optimizerData['Centered'] = False
+
+                if (values['Optimizer'] == "Adagrad"):
+                    optimizerData['Optimizer'] = "Adagrad"
+
+                    optimizerData['InitialAccumVal'] = 0.1
+                    optimizerData['Epsilon'] = 1e-7
+
+                if (values['Optimizer'] == "SGD"):
+                    optimizerData['Optimizer'] = "SGD"
+
+                    optimizerData['Momentum'] = 0.0
+                    optimizerData['Nesterov'] = False
+
+                if (values['Optimizer'] == "Nadam"):
+                    optimizerData['Optimizer'] = "Nadam"
+
+                    optimizerData['Beta1'] = 0.9
+                    optimizerData['Beta2'] = 0.999
+                    optimizerData['Epsilon'] = 1e-7
+
+                if (values['Optimizer'] == "Adamax"):
+                    optimizerData['Optimizer'] = "Adamax"
+
+                    optimizerData['Beta1'] = 0.9
+                    optimizerData['Beta2'] = 0.999
+                    optimizerData['Epsilon'] = 1e-7
+
+                # write to file OptimizerParameters.json and then open it
+                writeToJSONFile(pathJSON, fileNameOpt, optimizerData)
+                g = open('OptimizerParameters.json')
+                OptParam = json.load(g)
+
+                # Take loaded OptParam and put in data dictionary to be in MedML.json
+                data['OptParam'] = OptParam
+
+
+        except:
+
+            pathJSON = './'
+            fileNameOpt = 'OptimizerParameters'
+
+            # create empty dict of opt data
+            optimizerData = {}
+
+            # fill with filler values relative to the Optimizer selection from MedML.json
+            if (values['Optimizer'] == "Adam"):
+                optimizerData['Optimizer'] = "Adam"
+
+                optimizerData['Beta1'] = 0.9
+                optimizerData['Beta2'] = 0.999
+                optimizerData['Epsilon'] = 1e-7
+                optimizerData['Amsgrad'] = False
+
+            if (values['Optimizer'] == "RectifiedAdam"):
+                optimizerData['Optimizer'] = "RectifiedAdam"
+
+                optimizerData['Beta1'] = 0.9
+                optimizerData['Beta2'] = 0.999
+                optimizerData['Epsilon'] = None
+                optimizerData['Decay'] = 0.
+                optimizerData['WeightDecay'] = 0.
+                optimizerData['Amsgrad'] = False
+                optimizerData['TotalSteps'] = 0
+                optimizerData['WarmUpProportion'] = 0.1
+                optimizerData['MinLr'] = 0.
+
+            if (values['Optimizer'] == "RMSprop"):
+                optimizerData['Optimizer'] = "RMSprop"
+
+                optimizerData['Rho'] = 0.9
+                optimizerData['Momentum'] = 0.0
+                optimizerData['Epsilon'] = 1e-07
+                optimizerData['Centered'] = False
+
+            if (values['Optimizer'] == "Adagrad"):
+                optimizerData['Optimizer'] = "Adagrad"
+
+                optimizerData['InitialAccumVal'] = 0.1
+                optimizerData['Epsilon'] = 1e-7
+
+            if (values['Optimizer'] == "SGD"):
+                optimizerData['Optimizer'] = "SGD"
+
+                optimizerData['Momentum'] = 0.0
+                optimizerData['Nesterov'] = False
+
+            if (values['Optimizer'] == "Nadam"):
+                optimizerData['Optimizer'] = "Nadam"
+
+                optimizerData['Beta1'] = 0.9
+                optimizerData['Beta2'] = 0.999
+                optimizerData['Epsilon'] = 1e-7
+
+            if (values['Optimizer'] == "Adamax"):
+                optimizerData['Optimizer'] = "Adamax"
+
+                optimizerData['Beta1'] = 0.9
+                optimizerData['Beta2'] = 0.999
+                optimizerData['Epsilon'] = 1e-7
+
+            # write to file OptimizerParameters.json and then open it
+            writeToJSONFile(pathJSON, fileNameOpt, optimizerData)
+            g = open('OptimizerParameters.json')
+            OptParam = json.load(g)
+
+            # Take loaded OptParam and put in data dictionary to be in MedML.json
+            data['OptParam'] = OptParam
+
+
+        # Write to JSON file, Create MedML.json
+        writeToJSONFile(pathJSON, path_leaf(values['_FILESAVEAS_']), data)
+
+        sg.popup_ok('Parameters saved in file ' + path_leaf(values['_FILESAVEAS_']))

@@ -2,6 +2,7 @@ import json
 import os
 
 #from sklearn.tests.test_base import K
+import NiftiGenerator
 
 os.environ['TF_KERAS'] = '1'
 os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
@@ -19,7 +20,7 @@ from tensorflow.keras.optimizers import Adamax
 from tensorflow.keras import losses
 import Unet
 from lovasz_losses_tf import *
-from NiftiGenerator import NiftiGenerator
+from NiftiGenerator import *
 
 tensorflow.keras.backend.set_image_data_format('channels_last')
 
@@ -31,64 +32,8 @@ def writeToJSONFile(path, fileName, data):
 
 f = open('MedML.json')
 MedML = json.load(f)
+OptParam = MedML.get('OptParam')
 
-#try to read OptimizerParameters.json if it was not created create it and put in filler values
-try:
-    g = open('OptimizerParameters.json')
-    OptParam = json.load(g)
-except:
-    pathJSON = './'
-    fileNameOpt = 'OptimizerParameters'
-
-    #create empty dict of opt data
-    optimizerData = {}
-
-    #fill with filler values relative to the Optimizer selection from MedML.json
-    if(MedML.get('Optimizer') == "Adam"):
-        optimizerData['Beta1'] = 0.9
-        optimizerData['Beta2'] = 0.999
-        optimizerData['Epsilon'] = 1e-7
-        optimizerData['Amsgrad'] = False
-
-    if(MedML.get('Optimizer') == "RectifiedAdam"):
-        optimizerData['Beta1'] = 0.9
-        optimizerData['Beta2'] = 0.999
-        optimizerData['Epsilon'] = None
-        optimizerData['Decay'] = 0.
-        optimizerData['WeightDecay'] = 0.
-        optimizerData['Amsgrad'] = False
-        optimizerData['TotalSteps'] = 0
-        optimizerData['WarmUpProportion'] = 0.1
-        optimizerData['MinLr'] = 0.
-
-    if(MedML.get('Optimizer') == "RMSprop"):
-        optimizerData['Rho'] = 0.9
-        optimizerData['Momentum'] = 0.0
-        optimizerData['Epsilon'] = 1e-07
-        optimizerData['Centered'] = False
-
-    if(MedML.get('Optimizer') == "Adagrad"):
-        optimizerData['InitialAccumVal'] = 0.1
-        optimizerData['Epsilon'] = 1e-7
-
-    if(MedML.get('Optimizer') == "SGD"):
-        optimizerData['Momentum'] = 0.0
-        optimizerData['Nesterov'] = False
-
-    if(MedML.get('Optimizer') == "Nadam"):
-        optimizerData['Beta1'] = 0.9
-        optimizerData['Beta2'] = 0.999
-        optimizerData['Epsilon'] = 1e-7
-
-    if(MedML.get('Optimizer') == "Adamax"):
-        optimizerData['Beta1'] = 0.9
-        optimizerData['Beta2'] = 0.999
-        optimizerData['Epsilon'] = 1e-7
-
-    #write to file OptimizerParameters.json and then open it
-    writeToJSONFile(pathJSON, fileNameOpt, optimizerData)
-    g = open('OptimizerParameters.json')
-    OptParam = json.load(g)
 
     #call Adam
 def callAdam(learnRate, beta1, beta2, epsilon, amsgrad):
@@ -371,8 +316,13 @@ def execute():
     model.summary()
 
     print('creating data generators')
-    ng = NiftiGenerator()
-    ng.initialize(MedML.get('Folder name'))
+    ng = NiftiGenerator.PairedNiftiGenerator()
+
+    if MedML.get("inputFolderMode") == "one":
+        ng.initialize(MedML.get('Folder name'))
+
+    if MedML.get("inputFolderMode") == "two":
+        ng.initialize(MedML.get("Image Folder name"), MedML.get("Label Folder name"))
 
     print('creating callbacks')
     history = History()
@@ -391,14 +341,18 @@ def execute():
     MaxQueueSize = int(MedML.get('Max queue size'))
 
     steps_per_epoch = 1000 // batch_size # should really be number of total samples in the dataset divided by batch size
-    model.fit( ng.generate(img_size=(X,Y),slice_samples=sliceSamples,batch_size=batch_size,num_classes=numOfClasses),
+    model.fit( NiftiGenerator.generate_paired_chunks( ng, chunk_size=(X,Y,sliceSamples), batch_size=batch_size ),
                epochs=epochs, steps_per_epoch=steps_per_epoch,
                use_multiprocessing=useMultiProcessing, workers=Workers, max_queue_size=MaxQueueSize,
                callbacks=[history, modelCheckpoint] )
+    # model.fit( ng.generate(img_size=(X,Y),slice_samples=sliceSamples,batch_size=batch_size,num_classes=numOfClasses),
+    #            epochs=epochs, steps_per_epoch=steps_per_epoch,
+    #            use_multiprocessing=useMultiProcessing, workers=Workers, max_queue_size=MaxQueueSize,
+    #            callbacks=[history, modelCheckpoint] )
 
     model.save('model.h5')
 
     print('done')
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     execute()

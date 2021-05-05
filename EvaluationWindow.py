@@ -164,7 +164,16 @@ while True:
                         curr_input = curr_input[np.newaxis, ...]  # make input size= [1,X,Y,sliceSamples]
 
                     # predict segmentation
-                    curr_output = model.predict(curr_input)
+                    print("outside")
+                    try:
+                        print("no need")
+                        curr_output = model.predict(curr_input)
+
+                    except:
+                        # rotate
+                        print("rotate")
+                        np.rot90(curr_input)
+                        curr_output = model.predict(curr_input)
 
                     # convert from channel-encoding to integer encoding
                     curr_output_flat = np.zeros((curr_output.shape[1], curr_output.shape[2]))
@@ -177,6 +186,7 @@ while True:
 
                     # store in output array
                     out_data[:, :, seg_z] = curr_output_flat
+
 
                 # save file
                 # first create new Nifti object based on the input
